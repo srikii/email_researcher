@@ -1,6 +1,6 @@
 # Email Research Agent
 
-This prototype reads Gmail messages, finds links and PDF/Word attachments, extracts their content, summarizes everything, stores the summary in SQLite, and stores searchable semantic chunks in Chroma.
+This prototype reads new Gmail messages from a saved cursor, finds links and PDF/Word attachments, extracts their content, summarizes everything, stores the summary in SQLite, and stores searchable semantic chunks in Chroma.
 
 ## Architecture
 
@@ -41,7 +41,7 @@ The LangGraph state is the shared envelope passed between agents. Each agent ret
    python scripts\authorize_gmail.py
    ```
 
-6. Start the app:
+6. Start the app. On first startup the app creates a cursor set to the current time, so it will not backfill old email unless you explicitly process a date range:
 
    ```powershell
    uvicorn app.api.main:app --reload
@@ -92,9 +92,11 @@ email_research/
 
 ## API
 
-- `POST /process` processes recent matching Gmail messages.
-- `GET /process/stream` processes recent matching Gmail messages and streams node progress for the web UI.
+- `POST /process` processes new matching Gmail messages from the saved cursor.
+- `GET /process/stream` processes new matching Gmail messages from the saved cursor and streams node progress for the web UI.
+- `GET /process/stream?since=2026-05-27T09:00&until=2026-05-27T17:00` processes a user-selected time range without advancing the saved cursor.
 - `GET /summaries` lists generated summaries.
+- `GET /summaries?since=2026-05-27T00:00&until=2026-05-28T00:00` lists summaries received in a user-selected time range.
 - `GET /summaries/{email_id}` returns one summary.
 - `POST /search` semantic search over email summaries and extracted content.
 
@@ -102,7 +104,7 @@ Example search:
 
 ```json
 {
-  "query": "the funny cat article John sent last month",
+  "query": "the funny cat video John sent last month",
   "limit": 5
 }
 ```
@@ -115,7 +117,7 @@ The graph starts with a small state:
 {"gmail_query": "...", "max_results": 10}
 ```
 
-`gmail_intake_agent` adds `emails`. Each email has metadata, body text, links, and downloaded attachment paths.
+`gmail_intake_agent` adds `emails`. Each email has metadata, `received_at`, body text, links, and downloaded attachment paths.
 
 `email_router_agent` adds `route`: `links`, `attachments`, `both`, or `empty`.
 
@@ -130,3 +132,13 @@ The graph starts with a small state:
 `persistence_agent` saves summaries to SQLite and adds `saved_summary_ids`.
 
 LangSmith traces each LangGraph node when `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY` is set, and the model calls run through LangChain.
+
+## New Mail Cursor
+
+The default `Process Gmail` button does not scan all existing mail. It reads `gmail_cursor_started_at` from the SQLite `app_state` table and fetches messages received after that time. After the run finishes, it advances the cursor to the time the run started.
+
+This means:
+
+- Old email is ignored by default.
+- Email that arrives during a processing run is picked up on the next run.
+- The `Process Range` button can intentionally backfill a day or time window without changing the live cursor.

@@ -4,8 +4,15 @@ from app.graph.state import EmailResearchState
 
 
 def email_router_agent(state: EmailResearchState) -> EmailResearchState:
-    has_links = any(email.links for email in state.get("emails", []))
-    has_attachments = any(email.attachments for email in state.get("emails", []))
+    # Look through the emails and decide which worker agents are needed.
+    has_links = False
+    has_attachments = False
+
+    for email in state.get("emails", []):
+        if email.links:
+            has_links = True
+        if email.attachments:
+            has_attachments = True
 
     if has_links and has_attachments:
         route = "both"
@@ -20,6 +27,8 @@ def email_router_agent(state: EmailResearchState) -> EmailResearchState:
 
 
 def route_documents(state: EmailResearchState) -> list[Literal["link_agent", "attachment_agent", "nothing_to_process_agent"]]:
+    # LangGraph calls this function after email_router_agent.
+    # The returned node names decide the next path through the graph.
     route = state.get("route", "empty")
     if route == "both":
         return ["link_agent", "attachment_agent"]

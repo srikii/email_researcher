@@ -5,6 +5,7 @@ from app.storage.chroma_store import add_email_to_vector_store
 
 
 def vector_store_agent(state: EmailResearchState) -> EmailResearchState:
+    # This agent stores summaries and extracted text in Chroma for semantic search.
     documents_by_email = defaultdict(list)
     for document in state.get("documents", []):
         documents_by_email[document.email_id].append(document)

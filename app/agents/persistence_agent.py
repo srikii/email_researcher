@@ -3,6 +3,7 @@ from app.storage.sqlite_store import save_summary
 
 
 def persistence_agent(state: EmailResearchState) -> EmailResearchState:
+    # This agent saves user-facing summaries into SQLite.
     saved_ids: list[str] = []
     errors: list[str] = []
 

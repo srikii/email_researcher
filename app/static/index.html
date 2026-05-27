@@ -8,6 +8,7 @@
 </head>
 <body>
   <main class="shell">
+    <!-- Top action bar. Process Gmail uses the saved "new email" cursor. -->
     <section class="toolbar">
       <div>
         <h1>Email Research Agent</h1>
@@ -17,11 +18,27 @@
     </section>
     <section id="status" class="status">Idle</section>
 
+    <!-- Manual range controls for today's digest or one-time backfills. -->
+    <section class="rangebar">
+      <label>
+        From
+        <input id="since" type="datetime-local">
+      </label>
+      <label>
+        Until
+        <input id="until" type="datetime-local">
+      </label>
+      <button id="view-range">View Range</button>
+      <button id="process-range">Process Range</button>
+    </section>
+
+    <!-- Semantic search is separate from the date-range summary view. -->
     <section class="searchbar">
       <input id="query" placeholder="Search: funny cat video from John last month">
       <button id="search">Search</button>
     </section>
 
+    <!-- Left side shows summaries; right side shows semantic search hits. -->
     <section class="layout">
       <div>
         <h2>Generated summaries</h2>
