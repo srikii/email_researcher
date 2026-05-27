@@ -25,8 +25,8 @@ uvicorn app.api.main:app --reload
 Open http://127.0.0.1:8000.
 
 
-Beginner Guide
-
+**Beginner Guide
+**
 This app is a multi-agent pipeline. In LangGraph, an "agent" can simply be a Python function that receives shared state, does one job, and returns updates to that state.
 
 **The State**
@@ -36,15 +36,25 @@ app/graph/state.py defines EmailResearchState.
 Think of state like a backpack that moves from agent to agent:
 
 gmail_query: what to search in Gmail.
+
 max_results: how many emails to process.
+
 emails: messages fetched from Gmail.
+
 route: tells the graph whether the emails have links, attachments, both, or nothing useful.
+
 documents: extracted text from crawled URLs and attachments.
+
 summaries: final human-friendly summaries.
+
 stored_vector_ids: Chroma IDs created after embedding.
+
 saved_summary_ids: SQLite summary IDs.
+
 errors: non-fatal failures.
-documents and errors use Annotated[..., operator.add]. That tells LangGraph to merge lists when multiple agents run in parallel. This matters when one email has links and attachments: link_agent and attachment_agent can both add documents.
+
+documents and errors use Annotated[..., operator.add]. That tells LangGraph to merge lists when multiple agents run in parallel. 
+This matters when one email has links and attachments: link_agent and attachment_agent can both add documents.
 
 **The Graph**
 
@@ -84,26 +94,11 @@ Chroma stores meaning:
 You use both because they answer different kinds of questions.
 
 LangSmith
-LangSmith tracing is controlled by environment variables:
-LANGSMITH_TRACING=true
-LANGSMITH_API_KEY=lsv2-your-key
-LANGSMITH_PROJECT=email-research-agent
-
 When the graph runs, LangChain model and embedding calls are traced. This helps you see inputs, outputs, timing, and failures.
 
 Adding More Agents Later
-Good next agents:
 
+next agents:
 dedupe_agent: skip emails already processed.
 policy_agent: block suspicious URLs or huge files.
-image_ocr_agent: extract text from image attachments.
-entity_agent: extract people, companies, dates, and tasks.
-notification_agent: push completed summaries to Flutter.
-The pattern is always the same:
 
-Add fields to EmailResearchState if needed.
-Create a function in app/agents.
-Add it to app/graph/workflow.py.
-Return only the state fields the agent updates..
-
-LangSmith traces each LangGraph node when LANGSMITH_TRACING=true, LANGSMITH_API_KEY is set, and the model calls run through LangChain.
