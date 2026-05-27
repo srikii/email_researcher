@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Email Research Agent</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <section class="toolbar">
+      <div>
+        <h1>Email Research Agent</h1>
+        <p>Summaries and semantic search for Gmail links and attachments.</p>
+      </div>
+      <button id="process">Process Gmail</button>
+    </section>
+    <section id="status" class="status">Idle</section>
+
+    <section class="searchbar">
+      <input id="query" placeholder="Search: funny cat video from John last month">
+      <button id="search">Search</button>
+    </section>
+
+    <section class="layout">
+      <div>
+        <h2>Generated summaries</h2>
+        <div id="summaries" class="stack"></div>
+      </div>
+      <div>
+        <h2>Search results</h2>
+        <div id="results" class="stack"></div>
+      </div>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

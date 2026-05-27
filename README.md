@@ -1,104 +1,132 @@
-# email_researcher
+# Email Research Agent
+
 This prototype reads Gmail messages, finds links and PDF/Word attachments, extracts their content, summarizes everything, stores the summary in SQLite, and stores searchable semantic chunks in Chroma.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    A["FastAPI /process endpoint"] --> B["Gmail Intake Agent"]
+    B --> C["Email Router Agent"]
+    C --> D["Link Research Agent"]
+    C --> E["Attachment Scan Agent"]
+    D --> F["Summarizer Agent"]
+    E --> F
+    F --> G["Vector Store Agent"]
+    G --> H["Persistence Agent"]
+    H --> I["Web UI / API"]
+    J["/search endpoint"] --> K["Chroma semantic search"]
+```
 
 The LangGraph state is the shared envelope passed between agents. Each agent returns only the fields it changed. LangGraph merges those changes into the next state.
 
-Setup
-Install Python 3.11 or 3.12.
+## Setup
 
-Recreate the virtual environment if the old one is broken:
+1. Install Python 3.11 or 3.12.
+2. Recreate the virtual environment if the old one is broken:
 
-Remove-Item -Recurse -Force myvenv
-py -3.12 -m venv myvenv
-.\myvenv\Scripts\Activate.ps1
-pip install -r requirements.txt
-crawl4ai-setup
-Copy .env.example to .env and fill in your keys.
+   ```powershell
+   Remove-Item -Recurse -Force myvenv
+   py -3.12 -m venv myvenv
+   .\myvenv\Scripts\Activate.ps1
+   pip install -r requirements.txt
+   crawl4ai-setup
+   ```
 
-Create a Google Cloud OAuth Desktop app, enable Gmail API, and download it as credentials.json.
+3. Copy `.env.example` to `.env` and fill in your keys.
+4. Create a Google Cloud OAuth Desktop app, enable Gmail API, and download it as `credentials.json`.
+5. Authorize Gmail:
 
-Authorize Gmail:
-python scripts\authorize_gmail.py
-Start the app:
+   ```powershell
+   python scripts\authorize_gmail.py
+   ```
 
-uvicorn app.api.main:app --reload
-Open http://127.0.0.1:8000.
+6. Start the app:
 
+   ```powershell
+   uvicorn app.api.main:app --reload
+   ```
 
-**Beginner Guide
-**
-This app is a multi-agent pipeline. In LangGraph, an "agent" can simply be a Python function that receives shared state, does one job, and returns updates to that state.
+7. Open `http://127.0.0.1:8000`.
 
-**The State**
+## Important Files
 
-app/graph/state.py defines EmailResearchState.
+```text
+email_research/
+  app/
+    agents/
+      attachment_agent.py
+      email_router_agent.py
+      gmail_intake_agent.py
+      link_agent.py
+      nothing_to_process_agent.py
+      persistence_agent.py
+      summarizer_agent.py
+      vector_store_agent.py
+    api/main.py
+    gmail/client.py
+    graph/state.py
+    graph/workflow.py
+    storage/chroma_store.py
+    storage/sqlite_store.py
+    static/
+      index.html
+      styles.css
+      app.js
+  docs/BEGINNER_GUIDE.md
+  scripts/
+    authorize_gmail.py
+    process_once.py
+  requirements.txt
+  .env.example
+```
 
-Think of state like a backpack that moves from agent to agent:
+- `app/graph/workflow.py` wires the multi-agent LangGraph.
+- `app/graph/state.py` defines the state that moves between agents.
+- `app/agents/link_agent.py` crawls URLs with crawl4ai.
+- `app/agents/attachment_agent.py` reads PDF and Word attachments.
+- `app/agents/summarizer_agent.py` creates the final summary with an LLM.
+- `app/agents/vector_store_agent.py` saves searchable semantic content in Chroma.
+- `app/storage/chroma_store.py` runs semantic search.
+- `app/api/main.py` exposes the web app and backend API.
 
-gmail_query: what to search in Gmail.
+## API
 
-max_results: how many emails to process.
+- `POST /process` processes recent matching Gmail messages.
+- `GET /process/stream` processes recent matching Gmail messages and streams node progress for the web UI.
+- `GET /summaries` lists generated summaries.
+- `GET /summaries/{email_id}` returns one summary.
+- `POST /search` semantic search over email summaries and extracted content.
 
-emails: messages fetched from Gmail.
+Example search:
 
-route: tells the graph whether the emails have links, attachments, both, or nothing useful.
+```json
+{
+  "query": "the funny cat video John sent last month",
+  "limit": 5
+}
+```
 
-documents: extracted text from crawled URLs and attachments.
+## How The Agents Pass Data
 
-summaries: final human-friendly summaries.
+The graph starts with a small state:
 
-stored_vector_ids: Chroma IDs created after embedding.
+```python
+{"gmail_query": "...", "max_results": 10}
+```
 
-saved_summary_ids: SQLite summary IDs.
+`gmail_intake_agent` adds `emails`. Each email has metadata, body text, links, and downloaded attachment paths.
 
-errors: non-fatal failures.
+`email_router_agent` adds `route`: `links`, `attachments`, `both`, or `empty`.
 
-documents and errors use Annotated[..., operator.add]. That tells LangGraph to merge lists when multiple agents run in parallel. 
-This matters when one email has links and attachments: link_agent and attachment_agent can both add documents.
+`link_agent` adds extracted URL documents to `documents`.
 
-**The Graph**
+`attachment_agent` adds extracted PDF/Word documents to `documents`.
 
-app/graph/workflow.py wires the agents:
+`summarizer_agent` reads all email documents and adds `summaries`.
 
-gmail_intake_agent : Fetches emails and downloads attachments.
+`vector_store_agent` embeds summary and extracted document text into Chroma and adds `stored_vector_ids`.
 
-email_router_agent : Looks at the fetched emails and decides which workers are needed.
+`persistence_agent` saves summaries to SQLite and adds `saved_summary_ids`.
 
-link_agent : Uses crawl4ai to open URLs and return page text.
-
-attachment_agent : Reads PDF and Word files from disk and returns extracted text.
-
-summarizer_agent : Groups extracted documents by email and asks the LLM for a structured summary.
-
-vector_store_agent : Embeds the summary and source text, then stores vectors in Chroma.
-
-persistence_agent : Saves the user-facing summaries in SQLite so the web app can list them quickly.
-
-Why FastAPI : FastAPI gives you a backend that a Flutter app can call later. The current web UI is intentionally simple:
-
-
-**Why SQLite And Chroma**
-
-SQLite stores exact records:
-
-subject
-sender
-date
-short summary
-detailed summary
-source URLs/files
-Chroma stores meaning:
-
-"funny cat article from John" can match an email even when the exact words differ.
-"document Max sent last month" can match the attached document summary and metadata.
-You use both because they answer different kinds of questions.
-
-LangSmith
-When the graph runs, LangChain model and embedding calls are traced. This helps you see inputs, outputs, timing, and failures.
-
-Adding More Agents Later
-
-next agents:
-dedupe_agent: skip emails already processed.
-policy_agent: block suspicious URLs or huge files.
-
+LangSmith traces each LangGraph node when `LANGSMITH_TRACING=true`, `LANGSMITH_API_KEY` is set, and the model calls run through LangChain.
