@@ -102,7 +102,7 @@ Example search:
 
 ```json
 {
-  "query": "the funny cat video John sent last month",
+  "query": "the funny cat article John sent last month",
   "limit": 5
 }
 ```
