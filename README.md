@@ -18,7 +18,6 @@ Copy .env.example to .env and fill in your keys.
 Create a Google Cloud OAuth Desktop app, enable Gmail API, and download it as credentials.json.
 
 Authorize Gmail:
-
 python scripts\authorize_gmail.py
 Start the app:
 
@@ -27,9 +26,11 @@ Open http://127.0.0.1:8000.
 
 
 Beginner Guide
+
 This app is a multi-agent pipeline. In LangGraph, an "agent" can simply be a Python function that receives shared state, does one job, and returns updates to that state.
 
-The State
+**The State**
+
 app/graph/state.py defines EmailResearchState.
 
 Think of state like a backpack that moves from agent to agent:
@@ -45,39 +46,29 @@ saved_summary_ids: SQLite summary IDs.
 errors: non-fatal failures.
 documents and errors use Annotated[..., operator.add]. That tells LangGraph to merge lists when multiple agents run in parallel. This matters when one email has links and attachments: link_agent and attachment_agent can both add documents.
 
-The Graph
+**The Graph**
+
 app/graph/workflow.py wires the agents:
 
-gmail_intake_agent
-Fetches emails and downloads attachments.
+gmail_intake_agent : Fetches emails and downloads attachments.
 
-email_router_agent
-Looks at the fetched emails and decides which workers are needed.
+email_router_agent : Looks at the fetched emails and decides which workers are needed.
 
-link_agent
-Uses crawl4ai to open URLs and return page text.
+link_agent : Uses crawl4ai to open URLs and return page text.
 
-attachment_agent
-Reads PDF and Word files from disk and returns extracted text.
+attachment_agent : Reads PDF and Word files from disk and returns extracted text.
 
-summarizer_agent
-Groups extracted documents by email and asks the LLM for a structured summary.
+summarizer_agent : Groups extracted documents by email and asks the LLM for a structured summary.
 
-vector_store_agent
-Embeds the summary and source text, then stores vectors in Chroma.
+vector_store_agent : Embeds the summary and source text, then stores vectors in Chroma.
 
-persistence_agent
-Saves the user-facing summaries in SQLite so the web app can list them quickly.
+persistence_agent : Saves the user-facing summaries in SQLite so the web app can list them quickly.
 
-Why FastAPI
-FastAPI gives you a backend that a Flutter app can call later. The current web UI is intentionally simple:
+Why FastAPI : FastAPI gives you a backend that a Flutter app can call later. The current web UI is intentionally simple:
 
-Click Process Gmail to run the graph.
-Use the search box to run semantic search over Chroma.
-View generated summaries from SQLite.
-When you build Flutter later, keep the backend and replace only app/static.
 
-Why SQLite And Chroma
+**Why SQLite And Chroma**
+
 SQLite stores exact records:
 
 subject
@@ -88,7 +79,7 @@ detailed summary
 source URLs/files
 Chroma stores meaning:
 
-"funny cat video from John" can match an email even when the exact words differ.
+"funny cat article from John" can match an email even when the exact words differ.
 "document Max sent last month" can match the attached document summary and metadata.
 You use both because they answer different kinds of questions.
 
