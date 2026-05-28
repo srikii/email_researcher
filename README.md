@@ -23,10 +23,9 @@ The LangGraph state is the shared envelope passed between agents. Each agent ret
 ## Setup
 
 1. Install Python 3.11 or 3.12.
-2. Recreate the virtual environment if the old one is broken:
+2. Create the virtual environment and install dependancy
 
    ```powershell
-   Remove-Item -Recurse -Force myvenv
    py -3.12 -m venv myvenv
    .\myvenv\Scripts\Activate.ps1
    pip install -r requirements.txt
