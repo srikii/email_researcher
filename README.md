@@ -142,6 +142,10 @@ This means:
 - Email that arrives during a processing run is picked up on the next run.
 - The `Process Range` button can intentionally backfill a day or time window without changing the live cursor.
 
-Future: 
+**Future: **
+
 Add more agents to classify images and summarize the image content.
+
+Add an agent to deal with duplicate mails.
+
 Build a flutter application and deploy it for Ios and Android so that users can get summary of email links and attachments on their mobile devices.
