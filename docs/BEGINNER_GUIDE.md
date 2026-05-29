@@ -48,7 +48,7 @@ Think of state like a backpack that moves from agent to agent:
 
 ## Why FastAPI
 
-FastAPI gives you a backend that a Flutter app can call later. The current web UI is intentionally simple:
+FastAPI gives a backend that a Flutter app mobile app can call later. The current web UI is intentionally simple:
 
 - Click `Process Gmail` to run the graph only for new emails from now onward.
 - Pick `From` and `Until`, then click `View Range` to see already-generated summaries for that window.
